@@ -31,6 +31,8 @@ function overlayCanvasonGoogleMap(xllcorner,xurcorner,yllcorner,yurcorner)
         imageBounds);
 
     imgOverlay.setMap(map);
+    // set transparency
+    imgOverlay.setOpacity(0.5);
   }
 
 
@@ -70,3 +72,8 @@ function updateMapOverlay()
   imgOverlay.setMap(map);
 }
 
+function changeOverlayOpacity()
+{
+  var opacityStr = document.getElementById('opacitySelectorID').value;
+  imgOverlay.setOpacity(parseFloat(opacityStr));
+}
