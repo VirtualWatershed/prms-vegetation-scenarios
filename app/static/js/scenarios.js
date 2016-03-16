@@ -70,8 +70,8 @@ var ScenarioList = React.createClass({
                         </a>
                     </td>
                     <td className="download-link">
-                        <a href={'/api/scenarios/'+scenario._id.$oid}>
-                          View JSON
+                        <a href={'/hydrograph_vis/'+scenario._id.$oid}>
+                          View Hydrograph
                         </a>
                     </td>
                 </tr>
