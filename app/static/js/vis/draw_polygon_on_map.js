@@ -82,15 +82,6 @@ $(document).ready(function(){
     var scaleSize = 5;
     colorScale = chroma.scale(['pink','black','blue','red','green']).colors(scaleSize);
 
-    // add legend for the color panel
-    //for(var i=0; i<scaleSize; i++)
-    //{
-      //$("#colorLegendDiv").append("<p style='border-radius:25px;\
-                                      //padding:20px; \
-                                  //background:"+colorScale[i]+";'>\
-                                  //Legend for color "+i.toString()+"</p>");
-    //}
-
     // this part is used to push data into canvas
     // and paint color
     resetCanvas(vegOrigin);
@@ -192,24 +183,6 @@ $(document).ready(function(){
 
     });
 
-     // users change color scale on the 2D map
-    // $("#colorConfirmButton").click(function(){
-    //   // update color scale
-    //   var startColor = $("#startColorID").val();
-    //   var endColor = $("#endColorID").val();
-    //   colorScale = chroma.scale([startColor,endColor]).colors(scaleSize);
-
-    //   // add legend for the color panel
-    //   for(var i=0; i<scaleSize; i++)
-    //   {
-    //     $("#colorPanel"+i.toString()).css("background-color:"+colorScale[i]);
-    //   }
-
-
-    //   resetCanvas(vegOrigin);
-
-    //   updateMapOverlay();
-    // });
 
     $("#removeOverlayButton").click(function(){
       removeOverlay();
@@ -270,9 +243,7 @@ $(document).ready(function(){
     // for this case veg_code is the loop count (from 0), vegCode is str
     // therefore veg_code = i.toString()
     var tempSize;
-    //for(var i=0; i<Object.size(inputJson['vegetation_map']); i++)
-    //{
-      $.each(['bare_ground', 'grasses', 'shrubs', 'trees', 'conifers'],
+    $.each(['bare_ground', 'grasses', 'shrubs', 'trees', 'conifers'],
       function(i, cov_type) {
         tempSize = inputJson[cov_type].length;
         for(var m=0; m<tempSize; m++ )
@@ -397,8 +368,6 @@ $(document).ready(function(){
       }
     }
 
-    // chosenAreaInfo.push({colorNum:colorOptNum,chosenArea:chosenHRU});
-    // chosenHRU=[];
   }
 
   function changeCanvasCellColor(mousePosition,color)

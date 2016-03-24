@@ -48,8 +48,6 @@ $(document).ready(function(){
 			}
 		}
 
-		// explicit uncheck all the checkbox
-		//$("input:checkbox").prop("checked",false);
 
 		// draw line chart here
 		google.charts.setOnLoadCallback(drawChart);
@@ -140,7 +138,6 @@ $(document).ready(function(){
 				tempName = hydroJsonData["scenarios"][i]['name'];
 				data.addColumn('number',tempName);
 
-				//data.addRows(chartData[i]);
 			}
 		}
 		

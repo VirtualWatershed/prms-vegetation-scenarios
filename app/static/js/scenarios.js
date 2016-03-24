@@ -51,15 +51,6 @@ var ScenarioListBox = React.createClass({
  */
 var ScenarioList = React.createClass({
 
-    // this is used to open hydrograph in a new window
-    // displayHydrograph: function(tempScenario) {
-    //     var hydrographURL = '/hydrograph_vis/'+tempScenario._id.$oid;
-    //     window.open(hydrographURL, 'newwindow', 'width=548,height=325');
-    // },
-
-    // <a href="#"  onClick={this.displayHydrograph(scenario)}>
-    //<a href="#"  onClick={function(){var hydrographURL = '/hydrograph_vis/'+scenario._id.$oid; window.open(hydrographURL, 'newwindow', 'width=1000,height=700');}}>
-
     render: function() {
 
         var displayHydrograph = function(tempScenario) {
