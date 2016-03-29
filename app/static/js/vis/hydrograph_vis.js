@@ -33,6 +33,7 @@ $(document).ready(function(){
 		for(var i=0; i<hydroNum; i++)
 		{
 			var tempID = data["scenarios"][i]['_id']['$oid'];
+			var tempName = data["scenarios"][i]['name'];
 			if(tempID == scenarioID)
 			{
 				addDataIntoChart(i);
@@ -43,7 +44,13 @@ $(document).ready(function(){
 			// create a checkbox for it
 			else
 			{
-				$("#checkBoxDiv").append("<input type='checkbox' id='"+tempID+"' value='"+tempID+"'>"+tempID);
+				//$("#checkBoxDiv").append("<input type='checkbox' id='"+tempID+"' value='"+tempID+"'>"+tempName);
+				$("#tableItemID").append(
+					"<tr key="+tempID+">"+
+					"<td>"+tempName+"</td>"+
+					"<td>"+"<input type='checkbox' id='"+tempID+"' value='"+tempID+"'>"+tempName+"</td>"+
+					"</tr>"
+				);
 				isDrawHydro[i] = false;
 			}
 		}
