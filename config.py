@@ -24,7 +24,7 @@ class DevelopmentConfig(Config):
 
     DEBUG = True
 
-    MONGODB_SETTINGS = {'db': 'scenarios','host':'mongo'}
+    MONGODB_SETTINGS = {'db': 'scenarios'}  # ,'host':'mongo'}
 
     BASE_PARAMETER_NC = 'app/static/data/LC.param.nc'
 
