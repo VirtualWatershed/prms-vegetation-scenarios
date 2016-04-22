@@ -17,7 +17,6 @@ from uuid import uuid4
 from . import api
 from ..models import Scenario, Hydrograph, Inputs, Outputs
 from util import get_veg_map_by_hru, model_run_name
-from PRMSCoverageTool import ScenarioRun
 
 
 @api.route('/api/scenarios/<scenario_id>', methods=['GET', 'DELETE'])
@@ -107,42 +106,40 @@ def scenarios():
 
         time_received = datetime.datetime.now()
 
-        # XXX FIXME XXX
-        # this gets confusing, but the scenario_run is for configuring and
-        # running the model and the new_scenario is the Mongo record.
-        # Issue #35
-        # https://github.com/VirtualWatershed/prms-vegetation-scenarios/issues/35
-        scenario_run = ScenarioRun(BASE_PARAMETER_NC)
-        scenario_run.initialize(name)
-
-        scenario_run.update_cov_type(vegmap_json['bare_ground'], 0)
-        scenario_run.update_cov_type(vegmap_json['grasses'], 1)
-        scenario_run.update_cov_type(vegmap_json['shrubs'], 2)
-        scenario_run.update_cov_type(vegmap_json['trees'], 3)
-        scenario_run.update_cov_type(vegmap_json['conifers'], 4)
-
-        # close open netCDF
-        scenario_run.finalize_run()
-
         new_scenario = Scenario(
             name=name,
             time_received=time_received,
-            veg_map_by_hru=get_veg_map_by_hru(scenario_run.scenario_file)
         )
+
+        scenario_runner = new_scenario.initialize_runner(BASE_PARAMETER_NC)
+
+        # using vegmap sent by client, update coverage type variables
+        scenario_runner.update_cov_type(vegmap_json['bare_ground'], 0)
+        scenario_runner.update_cov_type(vegmap_json['grasses'], 1)
+        scenario_runner.update_cov_type(vegmap_json['shrubs'], 2)
+        scenario_runner.update_cov_type(vegmap_json['trees'], 3)
+        scenario_runner.update_cov_type(vegmap_json['conifers'], 4)
+
+        # commit changes to coverage type in preparation for scenario run
+        scenario_runner.finalize_run()
+
+        # now that changes to scenario_file are committed, we update Scenario
+        new_scenario.veg_map_by_hru =\
+            get_veg_map_by_hru(scenario_runner.scenario_file)
 
         new_scenario.save()
 
-        modelserver_run = scenario_run.run(
+        modelserver_run = scenario_runner.run(
             auth_host=app.config['AUTH_HOST'],
             model_host=app.config['MODEL_HOST'],
             app_username=app.config['APP_USERNAME'],
             app_password=app.config['APP_PASSWORD']
         )
 
-        # TODO placeholder
         time_finished = datetime.datetime.now()
         new_scenario.time_finished = time_finished
 
+        # extract URLs pointing to input/output resources stored on modelserver
         resources = modelserver_run.resources
 
         control =\
@@ -165,6 +162,7 @@ def scenarios():
         outputs = Outputs(statsvar=statsvar)
         new_scenario.outputs = outputs
 
+        # extract hydrograph from the statsvar file and add to Scenario
         if not os.path.isdir('.tmp'):
             os.mkdir('.tmp')
 
