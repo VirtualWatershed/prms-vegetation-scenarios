@@ -9,7 +9,8 @@
     <title>Virtual Watershed Platform</title>
 
     {% block scripts %}
-    <script src="/static/bower_components/jquery/dist/jquery.min.js"></script>
+    <!-- <script src="/static/bower_components/jquery/dist/jquery.min.js"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script src="/static/bower_components/bootswatch-dist/js/bootstrap.min.js"></script>
     <script src="/static/bower_components/react/react.js"></script>
     <script src="/static/bower_components/react/react-dom.js"></script>
@@ -52,13 +53,12 @@
         </div>
 
         <div class="collapse navbar-collapse" id="navbar">
-
-
-          <!--<ul id="main-menu" class="nav navbar-nav navbar-right">-->
-            <!--<li>-->
-                <!--<a href="#">Home</a>-->
-            <!--</li>-->
-          <!--</ul>-->
+              <ul id="main-menu" class="nav navbar-nav navbar-right">
+                    <li><a href="{{config['VWWEBAPP_HOST']}}"> Home</b></a></li>
+                   <!--  <li><a href="{{config['VWWEBAPP_HOST']}}/share"> Share</b></a></li> -->
+                    <li><a href="{{config['VWWEBAPP_HOST']}}/modeling"> Modeling</b></a></li>
+                    <li><a href="{{config['VWCONVERTER_HOST']}}"> Conversion Tools</b></a></li>
+              </ul>
         </div>
         <!-- /.navbar-collapse -->
       </div>

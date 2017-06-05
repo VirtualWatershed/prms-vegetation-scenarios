@@ -1,16 +1,45 @@
 import json
-import netCDF4
-import os
-import shutil
-import time
-
-from numpy import reshape
-
-from client.model_client.client import ModelApiClient
-from client.swagger_client.apis.default_api import DefaultApi
 
 from . import db
 
+from . import userdb
+
+from flask.ext.security import UserMixin, RoleMixin
+
+roles_users = userdb.Table('roles_users',
+                       userdb.Column('user_id', userdb.Integer(), userdb.ForeignKey('users.id')),
+                       userdb.Column('role_id', userdb.Integer(), userdb.ForeignKey('roles.id')))
+
+
+class User(UserMixin, userdb.Model):
+    __tablename__ = 'users'
+    #__bind_key__ = 'users'
+    id = userdb.Column(userdb.Integer, primary_key=True)
+    email = userdb.Column(userdb.String(255), unique=True)
+    password = userdb.Column(userdb.String(255))
+    name = userdb.Column(userdb.String(255))
+    affiliation = userdb.Column(userdb.String(255))
+    state = userdb.Column(userdb.String(255))
+    city = userdb.Column(userdb.String(255))
+    active = userdb.Column(userdb.Boolean())
+    confirmed_at = userdb.Column(userdb.DateTime())
+    roles = userdb.relationship('Role', secondary=roles_users,
+                            backref=userdb.backref('users', lazy='dynamic'))
+    last_login_at = userdb.Column(userdb.DateTime())
+    current_login_at = userdb.Column(userdb.DateTime())
+    last_login_ip = userdb.Column(userdb.String(255))
+    current_login_ip = userdb.Column(userdb.String(255))
+    login_count = userdb.Column(userdb.Integer)
+
+    def __repr__(self):
+        return '<models.User[email=%s]>' % self.email
+
+
+class Role(RoleMixin, userdb.Model):
+    __tablename__ = 'roles'
+    id = userdb.Column(userdb.Integer(), primary_key=True)
+    name = userdb.Column(userdb.String(80), unique=True)
+    description = userdb.Column(userdb.String(255))
 
 class Hydrograph(db.EmbeddedDocument):
     """
@@ -67,7 +96,8 @@ class Scenario(db.Document):
     Scenario data and metadata
     """
     name = db.StringField(required=True)
-    user = db.StringField(default='anonymous')
+    # user = db.StringField()
+    user_id = db.IntField()
 
     time_received = db.DateTimeField(required=True)
     time_finished = db.DateTimeField()
@@ -79,15 +109,8 @@ class Scenario(db.Document):
 
     hydrograph = db.EmbeddedDocumentField('Hydrograph')
 
-    run = None
-
-    def initialize_runner(self, base_file):
-
-        self.runner = ScenarioRun(base_file)
-
-        self.runner.initialize(self.name)
-
-        return self.runner
+    def get_id(self):
+        return str(self.pk)
 
     def to_json(self):
         """
@@ -108,154 +131,18 @@ class Scenario(db.Document):
 
         return json.dumps(js_dict)
 
+    def to_json_simple(self):
+        """
+        Override db.Document's to_json for custom date fomratting
+        only get meta data
+        """
+
+        js_dict = {'time_received':self.time_received.isoformat(), 'time_finished':self.time_finished.isoformat(),'id':str(self.pk)}
+
+        return json.dumps(js_dict)
+
     def __str__(self):
 
         return \
             '\n'.join(["{}: {}".format(k, self[k])
                        for k in self._fields_ordered])
-
-
-class ScenarioRun:
-    """
-    Scenario Run object representation of the process of creating and running
-    a PRMS Scenario
-    """
-
-    scenario_file = ""
-
-    def __init__(self, base_file):
-        self.base_file = base_file
-        self.working_scenario = None
-        self.scenario_name = None
-
-    def initialize(self, scenario_name):
-        '''
-        Starts a new scenario based on the original file under a new name
-
-        :param scenario_name: Name of scenario to make a new file;
-            .nc will be appended
-        :return:
-        '''
-        if self.working_scenario is not None:
-            raise Exception("Working Scenario already open")
-            return
-
-        if os.path.exists("{0}.nc".format(scenario_name)):
-            sequence = 2
-            while os.path.exists("{0}-{1}.nc".format(scenario_name, sequence)):
-                sequence = sequence + 1
-            self.scenario_file = "{0}-{1}.nc".format(scenario_name, sequence)
-        else:
-            self.scenario_file = "{0}.nc".format(scenario_name)
-
-        if not os.path.exists('.tmp'):
-            os.mkdir('.tmp')
-
-        self.scenario_file = os.path.join('.tmp', self.scenario_file)
-
-        shutil.copyfile(self.base_file, self.scenario_file)
-        self.working_scenario = netCDF4.Dataset(self.scenario_file, 'r+')
-
-        self.scenario_name = scenario_name
-
-    def finalize_run(self):
-        '''
-        Finalize the updates to the param file and free our references to it
-        :return:
-        '''
-        if self.working_scenario is None:
-            return
-        self.working_scenario.close()
-
-        self.working_scenario = None
-
-    def debug_display_cov_type(self, hru):
-        '''
-        For debug purposes; given a list of hrus, display the
-        coverage type for each coordinate
-
-        :param coords: List of coordinates
-        :return:
-        '''
-        if self.working_scenario is None:
-            raise Exception("No working scenario defined")
-            return
-
-        print self.working_scenario.variables['cov_type'][hru]
-
-    def update_cov_type(self, hru, val):
-        '''
-        Update coverage type in a single hru using 2d coordinates
-        :param hru (list): list of HRU to set to a new value, val
-        :param val: value to set hru to
-        :return:
-        '''
-        if self.working_scenario is None:
-            raise Exception("No working scenario defined")
-            return
-
-        if hru != []:
-
-            ctmat = self.working_scenario.variables['cov_type'][:]
-            ctvec = ctmat.flatten()
-            ctvec[hru] = val
-            self.working_scenario.variables['cov_type'][:] = \
-                reshape(ctvec, ctmat.shape)
-
-    def run(self, auth_host=None, model_host=None,
-            app_username=None, app_password=None):
-        """
-        Run PRMS on model server using the updated parameters file and
-        standard data.nc and control.nc files.
-
-        Arguments:
-            auth_host (str): hostname for the authentication server
-            model_host (str): hostname for the modeling server
-            app_username (str): username used on modeling/auth server
-            app_password (str): username used on modeling/auth server
-
-        Returns:
-            (client.swagger_client.models.model_run.ModelRun)
-        """
-        if self.working_scenario is not None:
-            raise Exception(
-                "Working Scenario is still being updated! `finalize_run` first"
-            )
-            return
-
-        cl = ModelApiClient(auth_host=auth_host, model_host=model_host)
-        cl.authenticate_jwt(username=app_username, password=app_password)
-
-        api = DefaultApi(api_client=cl)
-
-        mr = api.create_modelrun(
-            modelrun=dict(title=self.scenario_name, model_name='prms')
-        )
-
-        api.upload_resource_to_modelrun(
-            mr.id, 'control', 'app/static/data/LC.control'
-        )
-        api.upload_resource_to_modelrun(
-            mr.id, 'data', 'app/static/data/LC.data.nc'
-        )
-        api.upload_resource_to_modelrun(
-            mr.id, 'param', self.scenario_file
-        )
-        # clean up scenario file after upload
-        os.remove(self.scenario_file)
-
-        api.start_modelrun(mr.id)
-
-        run_not_finished = True
-        while run_not_finished:
-            state = api.get_modelrun_by_id(mr.id).progress_state
-            run_not_finished = (
-                state != 'FINISHED' and
-                state != 'ERROR'
-            )
-            time.sleep(1)
-
-        if state == 'ERROR':
-            raise RuntimeError('Model server execution failed!')
-
-        return api.get_modelrun_by_id(mr.id)
